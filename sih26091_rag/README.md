@@ -1,93 +1,121 @@
-# SIH26091 — Hyper-Local Business Advisory & Financial Structuring Assistant
+# SIH26091 — Small Enterprise Tax & Investment Advisory System
 
-Working prototype with **dummy data** for the RAG + financial calculator pipeline.
+An intelligent, location-aware financial advisory system for micro and small enterprises in Gujarat. The system combines deterministic financial modeling (P&L statements, reducing-balance loan amortization, DSCR, GST & Section 44AD tax liabilities) with a **RAG pipeline powered by Google Gemini** and real district census data (**Mahesana District, Gujarat**).
 
-## Architecture
+---
+
+## System Architecture
 
 ```
-Input: village, margin capital, business sector
-        │
-        ├─► Module 2: financial_calculator.py   (deterministic, no LLM)
-        │     margin capital → project cost → scheme routing → EMI schedule
-        │
-        └─► Module 1: rag_engine.py + local_data.py   (RAG)
-              ├── local_data.py    → structured lookup (village CSV: population,
-              │                       households, existing competitor counts)
-              ├── rag_engine.py    → TF-IDF retrieval over chunked knowledge base
-              │                       (data/dummy_docs/*.txt) + Gemini generation
-              └── main.py          → combines both into one report
+User Input: Village/Town Name, Margin Capital (₹), Business Sector
+       │
+       ▼
+1. Location Profiling (local_data.py)
+   └── Silently matches place in data/Mahesana_Population.csv
+   └── Derives economic archetype, consumer base scale, literacy band,
+       workforce composition (agri/dairy vs artisan vs trade), SC/ST ratio,
+       and priority sector lending status.
+       │
+       ▼
+2. Dynamic Financial & Loan Modeling (financial_calculator.py)
+   ├── Queries Gemini (gemini-3.6-flash) for prevailing area lending rate & subsidy
+   ├── Calculates Project Cost, Loan Sanction, Capital Subsidy & EMI Amortization
+   ├── Projects Annual P&L Statement (Revenue, COGS, Opex, EBITDA, DSCR, Break-Even)
+   └── Computes Tax Liability (GST Composition Scheme 1-2% + Presumptive Tax u/s 44AD)
+       │
+       ▼
+3. RAG Knowledge Retrieval & AI Advisory (rag_engine.py)
+   ├── TF-IDF / Semantic retrieval over sector rules & locality economic profiles
+   └── Generates structured Tax & Investment Advisory Report via Google Gemini
+       │
+       ▼
+4. Output (main.py)
+   ├── 1. Dynamic Financial & Loan Statement
+   ├── 2. Projected Annual Profit & Loss (P&L) Statement
+   ├── 3. Estimated Annual Tax Liability Statement
+   └── 4. Gemini AI Tax & Investment Advisory Report
 ```
 
-### Why the financial calculator is NOT part of the RAG/LLM flow
-Loan amounts, interest rates, and EMI figures must be exact. LLMs are unreliable
-at arithmetic and could hallucinate scheme numbers, which is dangerous for a
-tool guiding real borrowing decisions. `financial_calculator.py` is plain
-Python using the exact rules from the PS document (hardcoded scheme config at
-the top of the file — swap this for a database/admin panel later if scheme
-terms need to change without a code deploy).
+---
 
-### Why structured local stats are separate from the text retriever
-Village-level numbers (population, existing competitor counts) are queried
-directly from `local_data.py` / the CSV — not embedded as prose and
-semantically searched. Mixing structured numeric lookups into a text
-retriever is a common RAG mistake; it makes numbers unreliable. The RAG
-retriever (`rag_engine.py`) is reserved for genuinely unstructured knowledge:
-scheme rules explained in prose, sector business notes, SWOT framework text.
-
-## Files
+## File Structure
 
 | File | Purpose |
 |---|---|
-| `data/dummy_docs/scheme_rules.txt` | Knowledge base: scheme rules in prose, sector notes (dairy/retail/textile), SWOT framework. Chunked on `[DOCUMENT: ...]` markers. |
-| `data/dummy_local_stats.csv` | Dummy village-level stats — population, households, existing unit counts per sector, distance to nearest town. **Replace with real Census/MSME/Agri-census data for production.** |
-| `src/financial_calculator.py` | Module 2 — deterministic scheme routing, project cost, loan amount, EMI. |
-| `src/local_data.py` | Structured village stats lookup + competitor density calculation. |
-| `src/rag_engine.py` | Chunking, TF-IDF retriever, Gemini generation (with offline fallback template). |
-| `src/main.py` | Orchestrates everything end to end. |
+| [`data/Mahesana_Population.csv`](file:///d:/rag-test/sih26091_rag/data/Mahesana_Population.csv) | Real Census 2011 dataset containing 717 rows of villages, towns, and wards across Mahesana district with workforce, literacy, and demographic metrics. |
+| [`data/dummy_docs/scheme_rules.txt`](file:///d:/rag-test/sih26091_rag/data/dummy_docs/scheme_rules.txt) | Knowledge base containing scheme rules, MSME policies, sector guidelines, and tax frameworks. |
+| [`src/local_data.py`](file:///d:/rag-test/sih26091_rag/src/local_data.py) | Module for matching locations in the CSV and translating raw demographics into actionable economic/credit signals. |
+| [`src/financial_calculator.py`](file:///d:/rag-test/sih26091_rag/src/financial_calculator.py) | Dynamic interest rate determination (Gemini-integrated), loan amortization, full P&L statement, DSCR, break-even, and tax calculations. |
+| [`src/rag_engine.py`](file:///d:/rag-test/sih26091_rag/src/rag_engine.py) | Knowledge retriever and Gemini report generator (using `gemini-3.6-flash` with offline fallback). |
+| [`src/main.py`](file:///d:/rag-test/sih26091_rag/src/main.py) | Main entrypoint orchestrating the end-to-end pipeline. |
 
-## Running it
+---
 
-```bash
-pip install -r requirements.txt
-cd src
-python3 main.py
+## Step-by-Step Guide to Run
+
+### Step 1: Open Terminal and Navigate to Project
+```powershell
+cd d:\rag-test\sih26091_rag
 ```
 
-To get real LLM-generated narrative reports (not the fallback template), set
-your Gemini key first:
-
+### Step 2: Activate the Virtual Environment
+On Windows (PowerShell):
+```powershell
+.\env\Scripts\activate
+```
+On Linux/macOS:
 ```bash
-export GEMINI_API_KEY="your-key-here"     # macOS/Linux
-setx GEMINI_API_KEY "your-key-here"       # Windows (new terminal after)
+source env/bin/activate
 ```
 
-Edit the `run(...)` call at the bottom of `main.py` to test different inputs:
+### Step 3: Set Your Gemini API Key
+In PowerShell:
+```powershell
+$env:GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+```
+In Command Prompt (`cmd.exe`):
+```cmd
+set GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
+In Linux/macOS (Bash/Zsh):
+```bash
+export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+```
+
+### Step 4: Configure Input Parameters
+Open [`src/main.py`](file:///d:/rag-test/sih26091_rag/src/main.py) and edit the parameters at the bottom:
 ```python
-run(village_name="Bavla Chowk", margin_capital=250_000, sector="retail")
+if __name__ == "__main__":
+    # Parameters:
+    # 1. village_name : Any village/town in Mahesana (e.g. "Visnagar", "Sudasana", "Chelana", "Kheralu", "Vadnagar")
+    # 2. margin_capital: Promoter's capital contribution in INR (e.g. 50000, 100000, 200000)
+    # 3. sector        : Business sector (e.g. "textiles", "dairy", "retail", "agriculture", "handicraft")
+    
+    run(village_name="Visnagar", margin_capital=100_000, sector="textiles")
 ```
 
-## Current limitations (dummy-data stage) — known next steps
+### Step 5: Execute the System
+```powershell
+cd src
+python main.py
+```
 
-1. **Retrieval is TF-IDF, not semantic embeddings.** It works for this small
-   demo KB but will retrieve loosely-related sector docs alongside the
-   correct one (you'll see this in the test run — dairy queries also pull in
-   retail/textile notes because of shared generic words like
-   "opportunity"/"threats"). For the real hackathon build, swap in
-   `sentence-transformers` + FAISS/Chroma for genuine semantic retrieval —
-   the `SimpleRetriever` class in `rag_engine.py` is written so this is a
-   drop-in replacement (same `.retrieve(query, top_k)` interface).
+---
 
-2. **Local stats are 8 dummy villages.** Real hyper-local grounding needs a
-   real data source — Census 2011 village-level data (population/households),
-   MSME registration data (Udyam) for competitor density, or state
-   agriculture/economic survey data for purchasing power estimates. Plan
-   which of these you can realistically pull/scrape before the demo.
+## Example Outputs
 
-3. **Gemini model name**: this uses `gemini-2.5-flash`. Verify against
-   whichever model string is current for your API tier before the demo —
-   model names change.
+### 1. Visnagar — Textile Manufacturing (Capital: ₹1,00,000)
+* **Scheme & Rate:** PMEGP Rural / Cottage Industry @ **7.85% p.a.**
+* **Project Outlay:** ₹10,00,000 (Loan: ₹9,00,000 | Capital Subsidy: **₹3,50,000**)
+* **Quarterly EMI:** ₹59,834.14
+* **Projected Annual Revenue:** ₹16,00,000
+* **Estimated Annual Tax:** **₹32,000** (2% GST Composition Scheme; Income Tax is ₹0 u/s 44AD / 87A rebate)
+* **Net Profit After Tax:** **₹2,08,663/year** (208.7% Margin ROI)
 
-4. **No multilingual layer yet.** The PS explicitly asks for a multilingual
-   assistant. Easiest path: keep the KB and calculator in English, and add a
-   translation pass (input translated to English before retrieval, output
-   translated back) rather than maintaining multilingual embeddings.
+### 2. Sudasana — Dairy Farming (Capital: ₹50,000)
+* **Scheme & Rate:** NABARD / Priority Agri-MSME @ **6.50% p.a.**
+* **Project Outlay:** ₹5,00,000 (Loan: ₹4,50,000 | Capital Subsidy: **₹1,25,000**)
+* **Quarterly EMI:** ₹28,958.85
+* **Projected Annual Revenue:** ₹10,00,000
+* **Estimated Annual Tax:** **₹0.00** (Raw dairy & agricultural produce is Nil/Exempt under GST & Sec 10(1))
+* **Net Profit After Tax:** **₹1,54,165/year** (308.3% Margin ROI)

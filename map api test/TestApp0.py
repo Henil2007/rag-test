@@ -1,14 +1,14 @@
 import requests
 import json
 
-API_KEY = "YOUR_API_KEY_HERE"
+API_KEY = "871d70aab18b4e7ca0f4d66e9041dac0"
 
 
 # -----------------------------
 # Load category mapping
 # -----------------------------
 
-with open("category_mapper.json", "r", encoding="utf-8") as file:
+with open("d:/rag-test/map api test/category_mapper.json", "r", encoding="utf-8") as file:
     categories = json.load(file)
 
 
